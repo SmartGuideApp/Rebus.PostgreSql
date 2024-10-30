@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 // ReSharper disable once RedundantUsingDirective (because .NET Core)
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Npgsql;
 using NpgsqlTypes;
@@ -413,7 +414,15 @@ INSERT
 
     string GetSagaTypeName(Type sagaDataType)
     {
-        return sagaDataType.FullName;
+        return _removeVersionFromTypeFullName();
+
+        // Rebus cannot find existing saga when the version changes, which breaks a long-running saga with deployments during the saga lifetime.
+        string _removeVersionFromTypeFullName()
+        {
+            return sagaDataType.FullName != null 
+                ? Regex.Replace(sagaDataType.FullName, @"Version=\d+\.\d+\.\d+\.\d+, ", "")
+                : null;
+        }
     }
 
     static List<KeyValuePair<string, string>> GetPropertiesToIndex(ISagaData sagaData, IEnumerable<ISagaCorrelationProperty> correlationProperties)
